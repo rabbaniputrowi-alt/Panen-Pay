@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+firebase-admin
+openai>=1.35
+python-multipart
+qrcode[pil]
+pillow
+pytest
+httpx
