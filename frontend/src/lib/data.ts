@@ -1,10 +1,5 @@
 "use client";
 
-/**
- * One hook for the dashboard's data (§E): SWR polling in `poll` mode,
- * Firestore onSnapshot in `firestore` mode. Reads only — R2.
- */
-
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 
@@ -22,8 +17,7 @@ export function useRecentTransactions(): {
   const poll = useSWR(
     DATA_MODE === "poll" ? "recent-transactions" : null,
     () => api.recentTransactions().then((r) => r.transactions),
-    // refreshWhenHidden: the coop dashboard runs on a second screen that may
-    // be considered non-visible; never let the feed go stale.
+
     { refreshInterval: 2000, refreshWhenHidden: true },
   );
 

@@ -8,17 +8,12 @@ from app.store import Store
 
 router = APIRouter()
 
-# Mounted WITHOUT the /api/v1 prefix: the QR payload is
-# {PANEN_BASE_URL}/cert/{certId}, so a scan that lands on the backend gets
-# bounced to the Next.js verification page.
 redirect_router = APIRouter()
-
 
 @redirect_router.get("/cert/{cert_id}")
 def cert_redirect(cert_id: str, settings: Settings = Depends(get_settings)):
     base = settings.FRONTEND_BASE_URL.rstrip("/")
     return RedirectResponse(f"{base}/cert/{cert_id}", status_code=307)
-
 
 @router.get("/certificates/{cert_id}")
 def get_certificate(
@@ -33,6 +28,5 @@ def get_certificate(
 
     response = {"certificate": cert, "transaction": tx}
     if verify:
-        # Server-side recompute — the client never decides validity (R2).
         response["valid"] = certificate_svc.verify(tx, cert["sha256"])
     return response

@@ -22,9 +22,8 @@
 // ================== EDIT BEFORE FLASHING ==================
 #define WIFI_SSID "your-hotspot-ssid"
 #define WIFI_PASS "your-hotspot-password"
-#define API_BASE "http://192.168.1.100:8000" // laptop running the backend
+#define API_BASE "http://192.168.1.100:8000"
 #define STATION_ID "station-1"
-// ==========================================================
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -34,35 +33,29 @@
 #include <WiFi.h>
 #include <Wire.h>
 
-// ---- pins ----
 const int HX711_DT_PIN = 16;
 const int HX711_SCK_PIN = 4;
 const int BUZZER_PIN = 25;
 const int OLED_SDA_PIN = 21;
 const int OLED_SCL_PIN = 22;
 
-// ---- OLED ----
 const int OLED_WIDTH = 128;
-const int OLED_HEIGHT = 64;   // 0.96" SSD1306
-const uint8_t OLED_ADDR = 0x3C;   // some panels are 0x3D — check the silkscreen
-// Full-buffer I2C push costs ~30 ms; at 4 Hz it never starves the 10 Hz scale loop.
+const int OLED_HEIGHT = 64;
+const uint8_t OLED_ADDR = 0x3C;
+
 const unsigned long DISPLAY_INTERVAL_MS = 250;
 
 Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, -1);
-bool displayReady = false;         // false => run headless, never block the station
+bool displayReady = false;
 unsigned long lastDisplayAt = 0;
-String lastTier = "";              // set by pollFeedback, shown until the next batch
+String lastTier = "";
 
-// Calibrate against a full 600 ml water bottle ≈ 617 g:
-// place the bottle, read scale.get_units(10), then
-// CALIBRATION_FACTOR *= (reading / 617.0).
 const float CALIBRATION_FACTOR = 420.0f;
 
-// ---- timing / stability (mirrors scripts/simulate_station.py) ----
-const unsigned long READ_INTERVAL_MS = 100;      // 10 Hz
-const int WINDOW_SIZE = 8;                       // moving average window
-const float STABLE_SPREAD_G = 5.0f;              // spread < 5 g ...
-const unsigned long STABLE_HOLD_MS = 1500;       // ... held 1.5 s
+const unsigned long READ_INTERVAL_MS = 100;
+const int WINDOW_SIZE = 8;
+const float STABLE_SPREAD_G = 5.0f;
+const unsigned long STABLE_HOLD_MS = 1500;
 const unsigned long UNSTABLE_POST_INTERVAL_MS = 300;
 const unsigned long FEEDBACK_POLL_INTERVAL_MS = 2000;
 
@@ -78,10 +71,6 @@ unsigned long lastFeedbackPollAt = 0;
 unsigned long spreadOkSince = 0;
 bool stableReported = false;
 
-// ---- OLED ----
-
-// Bahasa labels mirror frontend/src/lib/strings.ts — the operator reads the
-// same words on the panel and on the screen.
 String tierLabel(const String &tier) {
   if (tier == "fresh") return "SEGAR";
   if (tier == "sell_today") return "JUAL HARI INI";
@@ -107,7 +96,6 @@ void drawScreen(float grams, bool stable) {
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
 
-  // header: brand + link state
   display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("PANEN PAY");
@@ -115,19 +103,16 @@ void drawScreen(float grams, bool stable) {
   display.print(WiFi.status() == WL_CONNECTED ? "WIFI" : "----");
   display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
 
-  // weight — the number the farmer is watching
   display.setTextSize(3);
   display.setCursor(0, 16);
   display.print(grams / 1000.0f, 2);
   display.setTextSize(1);
   display.print(" kg");
 
-  // stability
   display.setTextSize(1);
   display.setCursor(0, 42);
   display.print(stable ? "STABIL" : "menimbang...");
 
-  // last graded tier (from the feedback poll — no extra API surface)
   if (lastTier.length() > 0) {
     display.drawLine(0, 52, 127, 52, SSD1306_WHITE);
     display.setCursor(0, 56);
@@ -140,11 +125,8 @@ void drawScreen(float grams, bool stable) {
 void setup() {
   Serial.begin(115200);
 
-  // OLED first so it can narrate boot. Display-only: a missing panel must
-  // never stop the station (R7).
   Wire.begin(OLED_SDA_PIN, OLED_SCL_PIN);
-  // periphBegin=false: we already brought I2C up on our own pins above, and
-  // letting the library call Wire.begin() again would re-init on defaults.
+
   displayReady = display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR, true, false);
   if (!displayReady) {
     Serial.println("oled: not found at 0x3C — running headless");
@@ -157,7 +139,6 @@ void setup() {
   splash("tare - kosongkan");
   scale.tare();
 
-  // ESP32 core 3.x pin-based LEDC API
   ledcAttach(BUZZER_PIN, 2000, 10);
 
   WiFi.mode(WIFI_STA);
@@ -172,20 +153,12 @@ void setup() {
   splash(WiFi.localIP().toString());
 }
 
-// ---- buzzer ----
-
 void playTone(int freqHz, int durationMs) {
   ledcWriteTone(BUZZER_PIN, freqHz);
   delay(durationMs);
   ledcWriteTone(BUZZER_PIN, 0);
 }
 
-// Tone table (locked):
-//   weight stable : 1568 Hz, 80 ms chirp
-//   fresh         : 1047 -> 1319 Hz, 120 ms each (ascending)
-//   sell_today    : 880 Hz, 200 ms
-//   wilted        : 587 -> 440 Hz, 150 ms each (descending)
-//   error         : 220 Hz, 500 ms
 void playFeedbackTone(const String &tone) {
   if (tone == "fresh") {
     playTone(1047, 120);
@@ -200,8 +173,6 @@ void playFeedbackTone(const String &tone) {
   }
 }
 
-// ---- http ----
-
 void postWeight(float grams, bool stable) {
   if (WiFi.status() != WL_CONNECTED) return;
 
@@ -209,7 +180,6 @@ void postWeight(float grams, bool stable) {
   http.begin(String(API_BASE) + "/api/v1/ingest/weight");
   http.addHeader("Content-Type", "application/json");
 
-  // Payload matches the backend's WeightIngest model exactly.
   JsonDocument doc;
   doc["station_id"] = STATION_ID;
   doc["weight_grams"] = grams;
@@ -236,8 +206,7 @@ void pollFeedback() {
       const char *tone = doc["tone"] | "none";
       if (strcmp(tone, "none") != 0) {
         Serial.printf("feedback tone: %s\n", tone);
-        // "error" is audible only — it is not a grade, so it must not
-        // overwrite the tier shown on the panel.
+
         if (strcmp(tone, "error") != 0) lastTier = String(tone);
         playFeedbackTone(String(tone));
       }
@@ -245,8 +214,6 @@ void pollFeedback() {
   }
   http.end();
 }
-
-// ---- stability ----
 
 float windowAverage() {
   float sum = 0;
@@ -283,7 +250,7 @@ void loop() {
       if (!stableReported && now - spreadOkSince >= STABLE_HOLD_MS) {
         stableReported = true;
         postWeight(avg, true);
-        playTone(1568, 80); // stable chirp
+        playTone(1568, 80);
       }
     } else {
       spreadOkSince = 0;
@@ -294,8 +261,6 @@ void loop() {
       }
     }
 
-    // Redraw on its own 4 Hz clock, not per scale read — a full-buffer I2C
-    // push is ~30 ms and would eat a third of every 100 ms cycle.
     if (now - lastDisplayAt >= DISPLAY_INTERVAL_MS) {
       lastDisplayAt = now;
       drawScreen(avg, stableReported);

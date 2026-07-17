@@ -5,11 +5,10 @@ import useSWR from "swr";
 import { api } from "@/lib/api";
 import { STR } from "@/lib/strings";
 
-/** Big live kg number: pulses while unstable, leaf-green ring when stable. */
 export default function WeightLive() {
   const { data } = useSWR("station-state", () => api.stationState(), {
     refreshInterval: 1000,
-    // station kiosks may dim/background the screen — keep the scale live
+
     refreshWhenHidden: true,
   });
   const state = data?.state;

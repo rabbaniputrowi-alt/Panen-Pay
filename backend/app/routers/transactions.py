@@ -13,12 +13,10 @@ from app.store import Store
 
 router = APIRouter()
 
-
 class TransactionRequest(BaseModel):
     farmerName: str
     gps: GPS
     stationId: str = "station-1"
-
 
 @router.post("/transactions")
 def create_transaction(
@@ -74,14 +72,12 @@ def create_transaction(
         }
     )
 
-    # Consume the pending grade and queue the station buzzer tone.
     state["pendingGrade"] = None
     state["updatedAt"] = datetime.now(timezone.utc).isoformat()
     store.set_station_state(state)
     store.set_feedback(payload.stationId, tier)
 
     return {"transaction": tx, "certificate": cert, "brief": brief}
-
 
 @router.get("/transactions/recent")
 def recent_transactions(store: Store = Depends(get_store)) -> dict:

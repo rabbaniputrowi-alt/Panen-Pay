@@ -9,7 +9,6 @@ from app.store import Store
 
 router = APIRouter()
 
-
 @router.post("/grade", response_model=GradeResult)
 async def grade_photo(
     photo: UploadFile = File(...),

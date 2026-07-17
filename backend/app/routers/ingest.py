@@ -8,12 +8,10 @@ from app.store import Store
 
 router = APIRouter()
 
-
 class WeightIngest(BaseModel):
     station_id: str = "station-1"
     weight_grams: float
     stable: bool
-
 
 @router.post("/ingest/weight")
 def ingest_weight(payload: WeightIngest, store: Store = Depends(get_store)) -> dict:

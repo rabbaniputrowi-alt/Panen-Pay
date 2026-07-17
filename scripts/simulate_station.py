@@ -20,12 +20,11 @@ import zlib
 
 import httpx
 
-# Windows consoles often default to cp1252, which can't print the tone emoji.
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 STATION_ID = "station-1"
-GPS_BASE = (-7.797068, 110.370529)  # Yogyakarta
+GPS_BASE = (-7.797068, 110.370529)
 
 TONES = {
     "fresh": "🔊 fresh tone (1047→1319 Hz, ascending)",
@@ -36,7 +35,6 @@ TONES = {
 STABLE_CHIRP = "🔊 stable chirp (1568 Hz, 80 ms)"
 
 FARMERS = ["Bu Sari", "Pak Budi", "Bu Tini", "Pak Joko", "Bu Rahma"]
-
 
 def make_png(rgb: tuple[int, int, int], size: int = 64) -> bytes:
     """Minimal solid-color PNG encoder — keeps the simulator stdlib-only."""
@@ -49,8 +47,8 @@ def make_png(rgb: tuple[int, int, int], size: int = 64) -> bytes:
             + struct.pack(">I", zlib.crc32(tag + data) & 0xFFFFFFFF)
         )
 
-    ihdr = struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0)  # 8-bit RGB
-    row = b"\x00" + bytes(rgb) * size  # filter 0 + raw pixels
+    ihdr = struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0)
+    row = b"\x00" + bytes(rgb) * size
     idat = zlib.compress(row * size)
     return (
         b"\x89PNG\r\n\x1a\n"
@@ -59,13 +57,11 @@ def make_png(rgb: tuple[int, int, int], size: int = 64) -> bytes:
         + chunk(b"IEND", b"")
     )
 
-
 def post_weight(client: httpx.Client, grams: float, stable: bool) -> None:
     client.post(
         "/api/v1/ingest/weight",
         json={"station_id": STATION_ID, "weight_grams": round(grams, 1), "stable": stable},
     ).raise_for_status()
-
 
 def ramp_to(client: httpx.Client, target_grams: float) -> None:
     """Load the basket: jittered ramp, then 1.5s of <5g spread → stable."""
@@ -84,7 +80,6 @@ def ramp_to(client: httpx.Client, target_grams: float) -> None:
     post_weight(client, target_grams, stable=True)
     print(f"  ⚖️  {target_grams:7.1f} g STABLE — {STABLE_CHIRP}")
 
-
 def poll_feedback(client: httpx.Client, timeout_s: float = 10.0) -> str:
     """Poll every 2s like the firmware; print the tone instead of sounding it."""
     deadline = time.monotonic() + timeout_s
@@ -98,7 +93,6 @@ def poll_feedback(client: httpx.Client, timeout_s: float = 10.0) -> str:
         time.sleep(2)
     print("  (no feedback tone within timeout)")
     return "none"
-
 
 def run_transaction(client: httpx.Client, farmer: str, target_grams: float) -> None:
     print(f"\n=== {farmer}: {target_grams / 1000:.2f} kg batch ===")
@@ -126,16 +120,13 @@ def run_transaction(client: httpx.Client, farmer: str, target_grams: float) -> N
     print(f"  📝 {body['brief']}")
     poll_feedback(client)
 
-
 def scenario_happy(client: httpx.Client) -> None:
     run_transaction(client, "Bu Sari", 2400)
-
 
 def scenario_rush(client: httpx.Client) -> None:
     for farmer in FARMERS:
         run_transaction(client, farmer, random.uniform(500, 5000))
         time.sleep(0.5)
-
 
 def weight_only(client: httpx.Client, weight_kg: float, loop: bool) -> None:
     while True:
@@ -145,7 +136,6 @@ def weight_only(client: httpx.Client, weight_kg: float, loop: bool) -> None:
         print("  (re-zeroing scale)")
         post_weight(client, 0, stable=False)
         time.sleep(1)
-
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -170,7 +160,6 @@ def main() -> None:
             weight_only(client, args.weight, args.loop)
         else:
             parser.error("pick --scenario happy|rush or --weight N")
-
 
 if __name__ == "__main__":
     main()

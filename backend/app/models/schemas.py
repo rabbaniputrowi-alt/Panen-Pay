@@ -4,11 +4,9 @@ from pydantic import BaseModel
 
 Tier = Literal["fresh", "sell_today", "wilted"]
 
-
 class GPS(BaseModel):
     lat: float
     lng: float
-
 
 class Transaction(BaseModel):
     txId: str
@@ -22,24 +20,19 @@ class Transaction(BaseModel):
     certificateHash: str
     status: str = "paid_mock"
 
-
 class Certificate(BaseModel):
     certId: str
     txId: str
     sha256: str
     qrPayloadUrl: str
     issuedAt: str
-    # Extra to the spec'd fields: the exact server-issued QR, so the UI never
-    # re-derives it client-side.
     qrPngDataUri: Optional[str] = None
-
 
 class StationState(BaseModel):
     lastWeightGrams: float
     stable: bool
     lastTier: Optional[Tier] = None
     updatedAt: str
-
 
 class GradeResult(BaseModel):
     grade: Tier

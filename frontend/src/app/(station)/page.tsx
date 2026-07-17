@@ -100,12 +100,14 @@ export default function StationPage() {
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-6 p-6">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-extrabold text-leaf">{STR.appName.id}</h1>
-        <Link href="/dashboard" className="text-sm font-semibold text-slate underline">
+        <Link
+          href="/dashboard"
+          className="-mr-2 flex min-h-11 items-center px-2 text-sm font-semibold text-slate underline"
+        >
           {STR.dashboard.title.id}
         </Link>
       </header>
 
-      {/* step indicator */}
       <ol className="flex items-center gap-2">
         {STEPS.map((s, i) => (
           <li

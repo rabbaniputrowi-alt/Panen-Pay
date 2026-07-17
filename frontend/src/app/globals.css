@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* Locked design system (Phase 6): canvas / leaf / gold / terra / slate */
 @theme {
   --color-canvas: #fafbf0;
   --color-leaf: #3f7d3a;

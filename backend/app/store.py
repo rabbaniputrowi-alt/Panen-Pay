@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 
-
 class Store(ABC):
     name: str
 
@@ -34,12 +33,11 @@ class Store(ABC):
     def pop_feedback(self, station_id: str) -> str:
         """Read-once: returns the pending tone and clears it ('none' when empty)."""
 
-
 class InMemoryStore(Store):
     name = "memory"
 
     def __init__(self) -> None:
-        self._transactions: dict[str, dict] = {}  # insertion-ordered
+        self._transactions: dict[str, dict] = {}
         self._certificates: dict[str, dict] = {}
         self._station_state: dict | None = None
         self._feedback: dict[str, str] = {}
@@ -70,7 +68,6 @@ class InMemoryStore(Store):
 
     def pop_feedback(self, station_id: str) -> str:
         return self._feedback.pop(station_id, "none")
-
 
 class FirestoreStore(Store):
     """firebase-admin adapter. Collections: transactions, certificates,

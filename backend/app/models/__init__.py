@@ -1,4 +1,4 @@
-from .schemas import (  # noqa: F401
+from .schemas import (
     GPS,
     Certificate,
     GradeResult,

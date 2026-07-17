@@ -17,17 +17,14 @@ import qrcode
 
 _HASH_EXCLUDED_FIELDS = {"certificateHash", "certId"}
 
-
 def _canonical_json(payload: dict) -> bytes:
     return json.dumps(
         payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, default=str
     ).encode("utf-8")
 
-
 def tx_sha256(tx: dict) -> str:
     hashable = {k: v for k, v in tx.items() if k not in _HASH_EXCLUDED_FIELDS}
     return hashlib.sha256(_canonical_json(hashable)).hexdigest()
-
 
 def make_certificate(tx: dict, base_url: str | None = None) -> dict:
     base = (base_url or os.environ.get("PANEN_BASE_URL", "http://localhost:8000")).rstrip("/")
@@ -47,7 +44,6 @@ def make_certificate(tx: dict, base_url: str | None = None) -> dict:
         "issuedAt": datetime.now(timezone.utc).isoformat(),
         "qrPngDataUri": qr_png_data_uri,
     }
-
 
 def verify(tx: dict, sha256: str) -> bool:
     return tx_sha256(tx) == sha256

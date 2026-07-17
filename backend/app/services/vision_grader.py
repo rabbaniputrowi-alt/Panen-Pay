@@ -14,7 +14,6 @@ from pydantic import ValidationError
 
 from app.models import GradeResult
 
-# Shared by prod and the eval harness — edit in one place only.
 GRADING_SYSTEM_PROMPT = """You grade a single photo of harvested red chilies into exactly one of three tiers.
 
 Rubric:
@@ -54,10 +53,8 @@ _MOCK_EVIDENCE = {
     "wilted": "Kulit keriput dan warna menggelap, buah tampak lemas (penilaian simulasi).",
 }
 
-
 class GradingError(RuntimeError):
     """Grading failed after all retries. Routers map this to HTTP 502."""
-
 
 def prepare_image_b64(image_bytes: bytes) -> str:
     """Downscale long edge to ≤1024px, re-encode as JPEG, return base64."""
@@ -69,7 +66,6 @@ def prepare_image_b64(image_bytes: bytes) -> str:
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=90)
     return base64.b64encode(buf.getvalue()).decode("ascii")
-
 
 class MockGrader:
     """§E keyless path: grade = SHA-256(image bytes) % 3, same schema and
@@ -88,11 +84,10 @@ class MockGrader:
         confidence = ("high", "high", "medium", "low")[(h >> 8) % 4]
         return GradeResult(grade=grade, confidence=confidence, visual_evidence=_MOCK_EVIDENCE[grade])
 
-
 class OpenAIGrader:
     name = "openai"
     MODEL = "gpt-4o"
-    MAX_ATTEMPTS = 3  # first call + 2 retries (R6)
+    MAX_ATTEMPTS = 3
 
     def __init__(self, api_key: str):
         from openai import OpenAI
@@ -134,7 +129,6 @@ class OpenAIGrader:
                 last_error = f"schema parse failure: {exc}"
                 continue
         raise GradingError(f"grading failed after {self.MAX_ATTEMPTS} attempts: {last_error}")
-
 
 def make_grader(api_key: str | None):
     return OpenAIGrader(api_key) if api_key else MockGrader()

@@ -11,7 +11,6 @@ from app.services.vision_grader import MockGrader
 
 TIERS = {"fresh", "sell_today", "wilted"}
 
-
 @pytest.fixture()
 def client():
     settings = Settings(
@@ -21,22 +20,19 @@ def client():
         _env_file=None,
     )
     app = create_app(settings)
-    app.state.grader = MockGrader(latency_s=0)  # skip the mock's latency shaping
+    app.state.grader = MockGrader(latency_s=0)
     with TestClient(app) as test_client:
         yield test_client
-
 
 def red_jpeg() -> bytes:
     buf = io.BytesIO()
     Image.new("RGB", (128, 128), (203, 22, 22)).save(buf, format="JPEG")
     return buf.getvalue()
 
-
 def test_healthz_reports_keyless_adapters(client):
     for path in ("/healthz", "/api/v1/healthz"):
         body = client.get(path).json()
         assert body == {"ok": True, "grader": "mock", "store": "memory"}
-
 
 def test_transaction_requires_stable_weight_and_grade(client):
     tx_req = {"farmerName": "Bu Sari", "gps": {"lat": -7.79, "lng": 110.37}}
@@ -46,19 +42,15 @@ def test_transaction_requires_stable_weight_and_grade(client):
         "/api/v1/ingest/weight",
         json={"station_id": "station-1", "weight_grams": 2400, "stable": True},
     )
-    # stable weight but still no grade
     assert client.post("/api/v1/transactions", json=tx_req).status_code == 409
 
-
 def test_full_station_flow(client):
-    # 1. scale reports a stable weight
     resp = client.post(
         "/api/v1/ingest/weight",
         json={"station_id": "station-1", "weight_grams": 2400, "stable": True},
     )
     assert resp.status_code == 200
 
-    # 2. operator photographs the batch
     resp = client.post(
         "/api/v1/grade", files={"photo": ("chili.jpg", red_jpeg(), "image/jpeg")}
     )
@@ -66,7 +58,6 @@ def test_full_station_flow(client):
     grade = resp.json()
     assert grade["grade"] in TIERS
 
-    # 3. confirm the transaction
     resp = client.post(
         "/api/v1/transactions",
         json={"farmerName": "Bu Sari", "gps": {"lat": -7.79, "lng": 110.37}},
@@ -76,25 +67,21 @@ def test_full_station_flow(client):
     tx, cert = body["transaction"], body["certificate"]
     assert tx["tier"] == grade["grade"]
     assert tx["weightKg"] == 2.4
-    assert tx["totalIdr"] == total_idr(grade["grade"], 2.4)  # engine is the only authority
+    assert tx["totalIdr"] == total_idr(grade["grade"], 2.4)
     assert tx["status"] == "paid_mock"
     assert str(tx["totalIdr"]) in body["brief"]
 
-    # 4. dashboard poll sees it
     recent = client.get("/api/v1/transactions/recent").json()["transactions"]
     assert recent[0]["txId"] == tx["txId"]
 
-    # 5. QR target verifies server-side
     verified = client.get(f"/api/v1/certificates/{cert['certId']}?verify=1").json()
     assert verified["valid"] is True
     assert verified["transaction"]["txId"] == tx["txId"]
 
-    # 6. buzzer feedback is the tier, exactly once
     feedback_url = "/api/v1/station/feedback?station_id=station-1"
     assert client.get(feedback_url).json()["tone"] == tx["tier"]
     assert client.get(feedback_url).json()["tone"] == "none"
 
-    # a second transaction needs a fresh photo (pending grade was consumed)
     assert (
         client.post(
             "/api/v1/transactions",
@@ -102,7 +89,6 @@ def test_full_station_flow(client):
         ).status_code
         == 409
     )
-
 
 def test_unknown_certificate_404(client):
     assert client.get("/api/v1/certificates/nope?verify=1").status_code == 404

@@ -2,7 +2,6 @@ from fastapi import APIRouter, Request
 
 router = APIRouter()
 
-
 @router.get("/healthz")
 def healthz(request: Request) -> dict:
     return {

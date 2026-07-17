@@ -1,9 +1,4 @@
-/**
- * Firebase web client config — real project `test-970e2`, public by design
- * (§E). Used ONLY when NEXT_PUBLIC_DATA_MODE=firestore, and only for reads:
- * clients never write to the database (R2). No Analytics — it breaks SSR and
- * is unused.
- */
+
 
 import { getApps, initializeApp } from "firebase/app";
 import { Firestore, getFirestore } from "firebase/firestore";

@@ -11,8 +11,7 @@ export default function CertificateQR({
   return (
     <div className="flex flex-col items-center gap-3 rounded-3xl border border-slate/20 bg-white p-6">
       {certificate.qrPngDataUri ? (
-        // base64 data URI issued by the server — next/image can't optimize it
-        // eslint-disable-next-line @next/next/no-img-element
+
         <img
           src={certificate.qrPngDataUri}
           alt={STR.station.scanHint.id}

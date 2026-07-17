@@ -1,8 +1,4 @@
-/**
- * Every user-facing string in the product lives here (build order rule 4).
- * Station/farmer surfaces render Bahasa (`id`) first with an English subtitle;
- * the dashboard is English-only but still sources from this file.
- */
+
 
 export interface LStr {
   id: string;

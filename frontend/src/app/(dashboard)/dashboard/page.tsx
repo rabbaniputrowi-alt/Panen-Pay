@@ -9,13 +9,11 @@ import { formatIdr } from "@/lib/api";
 import { useRecentTransactions } from "@/lib/data";
 import { STR } from "@/lib/strings";
 
-// Dashboard is English-only (still sourced from strings.ts).
 const D = STR.dashboard;
 
 export default function DashboardPage() {
   const { transactions, mode } = useRecentTransactions();
 
-  // Display-only sums of engine numbers (R1: no client-side pricing).
   const totalKg = transactions.reduce((acc, tx) => acc + tx.weightKg, 0);
   const totalIdr = transactions.reduce((acc, tx) => acc + tx.totalIdr, 0);
 
@@ -38,13 +36,15 @@ export default function DashboardPage() {
             </span>
             {mode === "firestore" ? D.modeLive.en : D.modePoll.en}
           </span>
-          <Link href="/" className="text-sm font-semibold text-slate underline">
+          <Link
+            href="/"
+            className="-mr-2 flex min-h-11 items-center px-2 text-sm font-semibold text-slate underline"
+          >
             Station
           </Link>
         </div>
       </header>
 
-      {/* today's totals strip */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
           { label: D.txCount.en, value: String(transactions.length) },
@@ -63,7 +63,6 @@ export default function DashboardPage() {
         ))}
       </section>
 
-      {/* live feed */}
       <section className="rounded-3xl border border-slate/20 bg-white">
         <div className="flex items-center justify-between border-b border-slate/15 px-5 py-4">
           <h2 className="text-lg font-bold">{D.liveFeed.en}</h2>
@@ -127,7 +126,6 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* coop-as-community-channel strip */}
       <section className="grid grid-cols-3 gap-4">
         {[
           { src: "/images/intake-desk.png", alt: STR.images.intake.en },

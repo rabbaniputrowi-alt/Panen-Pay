@@ -9,7 +9,6 @@ import { STR } from "@/lib/strings";
 
 const C = STR.cert;
 
-/** Public verification page — what the QR on the printed certificate opens. */
 export default function CertVerify({ certId }: { certId: string }) {
   const { data, error, isLoading } = useSWR(`cert-${certId}`, () =>
     api.certificate(certId, true),

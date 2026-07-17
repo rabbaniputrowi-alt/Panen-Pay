@@ -18,8 +18,7 @@ export default function GradeCard({
     <div className="flex flex-col gap-4 rounded-3xl border border-slate/20 bg-white p-6">
       <div className="flex items-center gap-4">
         {photoUrl ? (
-          // object URLs from the camera input — next/image can't optimize these
-          // eslint-disable-next-line @next/next/no-img-element
+
           <img
             src={photoUrl}
             alt={STR.images.hero.id}

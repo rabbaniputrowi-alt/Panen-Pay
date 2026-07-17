@@ -18,7 +18,6 @@ BRIEF_SYSTEM_PROMPT = (
 
 TIER_LABEL_ID = {"fresh": "segar", "sell_today": "jual hari ini", "wilted": "layu"}
 
-
 def template_brief(payload: dict) -> str:
     """Keyless / fallback brief: filled purely from engine numbers."""
     return (
@@ -27,10 +26,8 @@ def template_brief(payload: dict) -> str:
         f"total Rp{payload['totalIdr']} (pembayaran simulasi)."
     )
 
-
 def allowed_digit_sequences(payload: dict) -> set[str]:
     return set(re.findall(r"\d+", json.dumps(payload, ensure_ascii=False, default=str)))
-
 
 def digits_ok(text: str, allowed: set[str]) -> bool:
     """Every number token in the text must reduce to digits from the payload.
@@ -49,18 +46,16 @@ def digits_ok(text: str, allowed: set[str]) -> bool:
         return False
     return True
 
-
 class TemplateBriefWriter:
     name = "template"
 
     def write(self, payload: dict) -> str:
         return template_brief(payload)
 
-
 class OpenAIBriefWriter:
     name = "openai"
     MODEL = "gpt-4o"
-    MAX_ATTEMPTS = 2  # first call + one retry, then template fallback
+    MAX_ATTEMPTS = 2
 
     def __init__(self, api_key: str):
         from openai import OpenAI
@@ -81,12 +76,11 @@ class OpenAIBriefWriter:
                     ],
                 )
             except Exception:
-                break  # API trouble -> template, never block the flow on prose
+                break
             text = (response.choices[0].message.content or "").strip()
             if text and digits_ok(text, allowed):
                 return text
         return template_brief(payload)
-
 
 def make_brief_writer(api_key: str | None):
     return OpenAIBriefWriter(api_key) if api_key else TemplateBriefWriter()

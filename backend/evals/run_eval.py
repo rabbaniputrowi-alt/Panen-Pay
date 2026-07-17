@@ -21,9 +21,9 @@ from pathlib import Path
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BACKEND_DIR))
 
-from PIL import Image  # noqa: E402
+from PIL import Image
 
-from app.services.vision_grader import MockGrader, OpenAIGrader  # noqa: E402
+from app.services.vision_grader import MockGrader, OpenAIGrader
 
 EVALS_DIR = Path(__file__).resolve().parent
 GOLDEN_DIR = EVALS_DIR / "golden_set"
@@ -31,7 +31,6 @@ RESULTS_DIR = EVALS_DIR / "results"
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png"}
 CALLS_PER_IMAGE = 3
 ACCURACY_GATE = 0.80
-
 
 def synthetic_cases(grader) -> list[tuple[str, bytes, str]]:
     """3 deterministic JPEGs; labels are the mock grader's own deterministic
@@ -50,7 +49,6 @@ def synthetic_cases(grader) -> list[tuple[str, bytes, str]]:
         cases.append((f"synthetic_{name}.jpg", data, grader.grade(data).grade))
     return cases
 
-
 def golden_cases() -> list[tuple[str, bytes, str]]:
     labels_path = GOLDEN_DIR / "expected_grades.json"
     if not labels_path.exists():
@@ -63,7 +61,6 @@ def golden_cases() -> list[tuple[str, bytes, str]]:
     if not cases:
         sys.exit("no labeled images in golden_set/ — see golden_set/README.md")
     return cases
-
 
 def run(grader, cases) -> dict:
     per_image = []
@@ -98,7 +95,6 @@ def run(grader, cases) -> dict:
     print(f"\naccuracy={report['accuracy']:.2f} stability={report['stability']:.2f} -> {out}")
     return report
 
-
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mock", action="store_true", help="run against the mock grader on synthetic images")
@@ -116,7 +112,6 @@ def main() -> None:
 
     report = run(grader, cases)
     sys.exit(0 if report["accuracy"] >= ACCURACY_GATE else 1)
-
 
 if __name__ == "__main__":
     main()
