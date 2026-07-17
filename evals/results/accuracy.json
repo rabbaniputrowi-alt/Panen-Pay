@@ -1,0 +1,46 @@
+{
+  "ranAt": "2026-07-15T23:09:33.125075+00:00",
+  "grader": "mock",
+  "images": 3,
+  "callsPerImage": 3,
+  "accuracy": 1.0,
+  "stability": 1.0,
+  "perImage": [
+    {
+      "image": "synthetic_vivid_red.jpg",
+      "expected": "wilted",
+      "grades": [
+        "wilted",
+        "wilted",
+        "wilted"
+      ],
+      "majority": "wilted",
+      "correct": true,
+      "stable": true
+    },
+    {
+      "image": "synthetic_dull_orange_red.jpg",
+      "expected": "fresh",
+      "grades": [
+        "fresh",
+        "fresh",
+        "fresh"
+      ],
+      "majority": "fresh",
+      "correct": true,
+      "stable": true
+    },
+    {
+      "image": "synthetic_dark_brown.jpg",
+      "expected": "fresh",
+      "grades": [
+        "fresh",
+        "fresh",
+        "fresh"
+      ],
+      "majority": "fresh",
+      "correct": true,
+      "stable": true
+    }
+  ]
+}

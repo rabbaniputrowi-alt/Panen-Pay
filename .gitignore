@@ -19,3 +19,5 @@ next-env.d.ts
 
 # eval outputs
 backend/evals/results/
+docs/
+CLAUDE.md
