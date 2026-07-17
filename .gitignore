@@ -1,0 +1,21 @@
+# secrets
+.env
+.env.*
+!.env.example
+serviceAccount*.json
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+
+# node / next
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# eval outputs
+backend/evals/results/
