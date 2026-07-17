@@ -1,17 +1,23 @@
 // Panen Pay intake station — ESP32 firmware
 // Targets Arduino IDE with ESP32 core 3.x.
-// Libraries: HX711 (bogde), WiFi, HTTPClient, ArduinoJson.
+// Libraries: HX711 (bogde), WiFi, HTTPClient, ArduinoJson,
+//            Adafruit_SSD1306 + Adafruit_GFX (0.96" OLED).
 //
 // Wiring:
 //   HX711 load cell amp: DT  -> GPIO16
 //                        SCK -> GPIO4
 //   Passive buzzer:      +   -> GPIO25
+//   0.96" OLED (I2C):    SDA -> GPIO21
+//                        SCL -> GPIO22   (VCC 3.3V, addr 0x3C)
 //
 // Behavior:
 //   - 10 Hz scale reads, 8-sample moving average.
 //   - stable = window spread < 5 g held for 1.5 s -> POST /ingest/weight, chirp.
 //   - Polls /station/feedback every 2 s and plays the tier tone (read-once
 //     server-side, so a tone never replays).
+//   - OLED mirrors weight/stability/last tier at 4 Hz. It is display-only:
+//     if the panel is absent the station runs headless (R7) — the web UI
+//     remains the authoritative surface.
 
 // ================== EDIT BEFORE FLASHING ==================
 #define WIFI_SSID "your-hotspot-ssid"
@@ -20,15 +26,32 @@
 #define STATION_ID "station-1"
 // ==========================================================
 
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
 #include <HX711.h>
 #include <WiFi.h>
+#include <Wire.h>
 
 // ---- pins ----
 const int HX711_DT_PIN = 16;
 const int HX711_SCK_PIN = 4;
 const int BUZZER_PIN = 25;
+const int OLED_SDA_PIN = 21;
+const int OLED_SCL_PIN = 22;
+
+// ---- OLED ----
+const int OLED_WIDTH = 128;
+const int OLED_HEIGHT = 64;   // 0.96" SSD1306
+const uint8_t OLED_ADDR = 0x3C;   // some panels are 0x3D — check the silkscreen
+// Full-buffer I2C push costs ~30 ms; at 4 Hz it never starves the 10 Hz scale loop.
+const unsigned long DISPLAY_INTERVAL_MS = 250;
+
+Adafruit_SSD1306 display(OLED_WIDTH, OLED_HEIGHT, &Wire, -1);
+bool displayReady = false;         // false => run headless, never block the station
+unsigned long lastDisplayAt = 0;
+String lastTier = "";              // set by pollFeedback, shown until the next batch
 
 // Calibrate against a full 600 ml water bottle ≈ 617 g:
 // place the bottle, read scale.get_units(10), then
@@ -55,11 +78,83 @@ unsigned long lastFeedbackPollAt = 0;
 unsigned long spreadOkSince = 0;
 bool stableReported = false;
 
+// ---- OLED ----
+
+// Bahasa labels mirror frontend/src/lib/strings.ts — the operator reads the
+// same words on the panel and on the screen.
+String tierLabel(const String &tier) {
+  if (tier == "fresh") return "SEGAR";
+  if (tier == "sell_today") return "JUAL HARI INI";
+  if (tier == "wilted") return "LAYU";
+  return "";
+}
+
+void splash(const String &line) {
+  if (!displayReady) return;
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.println("PANEN PAY");
+  display.setCursor(0, 16);
+  display.println(line);
+  display.display();
+}
+
+void drawScreen(float grams, bool stable) {
+  if (!displayReady) return;
+
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+
+  // header: brand + link state
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("PANEN PAY");
+  display.setCursor(98, 0);
+  display.print(WiFi.status() == WL_CONNECTED ? "WIFI" : "----");
+  display.drawLine(0, 10, 127, 10, SSD1306_WHITE);
+
+  // weight — the number the farmer is watching
+  display.setTextSize(3);
+  display.setCursor(0, 16);
+  display.print(grams / 1000.0f, 2);
+  display.setTextSize(1);
+  display.print(" kg");
+
+  // stability
+  display.setTextSize(1);
+  display.setCursor(0, 42);
+  display.print(stable ? "STABIL" : "menimbang...");
+
+  // last graded tier (from the feedback poll — no extra API surface)
+  if (lastTier.length() > 0) {
+    display.drawLine(0, 52, 127, 52, SSD1306_WHITE);
+    display.setCursor(0, 56);
+    display.print(tierLabel(lastTier));
+  }
+
+  display.display();
+}
+
 void setup() {
   Serial.begin(115200);
 
+  // OLED first so it can narrate boot. Display-only: a missing panel must
+  // never stop the station (R7).
+  Wire.begin(OLED_SDA_PIN, OLED_SCL_PIN);
+  // periphBegin=false: we already brought I2C up on our own pins above, and
+  // letting the library call Wire.begin() again would re-init on defaults.
+  displayReady = display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR, true, false);
+  if (!displayReady) {
+    Serial.println("oled: not found at 0x3C — running headless");
+  } else {
+    splash("boot...");
+  }
+
   scale.begin(HX711_DT_PIN, HX711_SCK_PIN);
   scale.set_scale(CALIBRATION_FACTOR);
+  splash("tare - kosongkan");
   scale.tare();
 
   // ESP32 core 3.x pin-based LEDC API
@@ -68,11 +163,13 @@ void setup() {
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   Serial.print("wifi: connecting");
+  splash("wifi...");
   while (WiFi.status() != WL_CONNECTED) {
     delay(300);
     Serial.print(".");
   }
   Serial.printf("\nwifi: connected, ip=%s\n", WiFi.localIP().toString().c_str());
+  splash(WiFi.localIP().toString());
 }
 
 // ---- buzzer ----
@@ -139,6 +236,9 @@ void pollFeedback() {
       const char *tone = doc["tone"] | "none";
       if (strcmp(tone, "none") != 0) {
         Serial.printf("feedback tone: %s\n", tone);
+        // "error" is audible only — it is not a grade, so it must not
+        // overwrite the tier shown on the panel.
+        if (strcmp(tone, "error") != 0) lastTier = String(tone);
         playFeedbackTone(String(tone));
       }
     }
@@ -192,6 +292,13 @@ void loop() {
         lastUnstablePostAt = now;
         postWeight(avg, false);
       }
+    }
+
+    // Redraw on its own 4 Hz clock, not per scale read — a full-buffer I2C
+    // push is ~30 ms and would eat a third of every 100 ms cycle.
+    if (now - lastDisplayAt >= DISPLAY_INTERVAL_MS) {
+      lastDisplayAt = now;
+      drawScreen(avg, stableReported);
     }
   }
 
