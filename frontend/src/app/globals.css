@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* Locked design system (Phase 6): canvas / leaf / gold / terra / slate */
+@theme {
+  --color-canvas: #fafbf0;
+  --color-leaf: #3f7d3a;
+  --color-gold: #e9b62c;
+  --color-terra: #c0653f;
+  --color-slate: #5b6b7a;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-canvas);
+  color: #23301f;
+  font-family: var(--font-sans);
+}
